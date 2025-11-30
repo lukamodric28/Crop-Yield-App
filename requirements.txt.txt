@@ -1,0 +1,8 @@
+numpy
+pandas
+matplotlib
+scikit-learn
+pycountry-convert
+streamlit
+scipy
+joblib
