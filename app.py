@@ -32,6 +32,7 @@ pesticides_in_tons_used = st.number_input("🧪Enter the amount of pesticides us
 year = st.number_input("📅Enter the year for which you want to predict the yield!: ", help = "This model works best for years between 1990-2013, but it does work for years before or after that")
 Country = st.selectbox("Select the country you want to predict the yield for!", countries)
 Crop = st.selectbox("Select the crop you want to predict the yield for!", crop)
+Model = st.selectbox("Select the model you want to use for prediction!", ["Lasso Regression", "Polynomial Regression", "Random Forest Regression", "Gradient Boosting", "K-Nearest Neighbors", "Support Vector Regression"])
 
 user_input_df = pd.DataFrame({
     "average_rainfall_in_mm_per_year": [average_rainfall_in_mm_per_year],
@@ -43,6 +44,27 @@ user_input_df = pd.DataFrame({
 })
 
 if(st.button("Predict Yield")):
-    with st.spinner("Predicting...Please wait!"):
-        lasso_regression_prediction = loaded_final_lasso_regression_model.predict(user_input_df)
-    st.write("Predicted Crop Yield: ", lasso_regression_prediction[0])
+    if(Model == "Lasso Regression"):
+        with st.spinner("Predicting...Please wait!"):
+            lasso_regression_prediction = loaded_final_lasso_regression_model.predict(user_input_df)
+        st.write("Predicted Crop Yield: ", lasso_regression_prediction[0])
+    elif(Model == "Polynomial Regression"):
+        with st.spinner("Predicting...Please wait!"):
+            polynomial_regression_prediction = loaded_final_polynomial_regression_model.predict(user_input_df)
+        st.write("Predicted Crop Yield: ", polynomial_regression_prediction[0])
+    elif(Model == "Random Forest Regression"):
+        with st.spinner("Predicting...Please wait!"):
+            random_forest_regression_prediction = loaded_final_random_forest_regression_model.predict(user_input_df)
+        st.write("Predicted Crop Yield: ", random_forest_regression_prediction[0])
+    elif(Model == "Gradient Boosting"):
+        with st.spinner("Predicting...Please wait!"):
+            gradient_boosting_regression_prediction = loaded_final_gradient_boosting_regression_model.predict(user_input_df)
+        st.write("Predicted Crop Yield: ", gradient_boosting_regression_prediction[0])
+    elif(Model == "K-Nearest Neighbors"):
+        with st.spinner("Predicting...Please wait!"):
+            k_nearest_neighbors_prediction = loaded_final_k_nearest_neighbors_model.predict(user_input_df)
+        st.write("Predicted Crop Yield: ", k_nearest_neighbors_prediction[0])
+    elif(Model == "Support Vector Regression"):
+        with st.spinner("Predicting...Please wait!"):
+            support_vector_regression_prediction = loaded_final_support_vector_regression_model.predict(user_input_df)
+        st.write("Predicted Crop Yield: ", support_vector_regression_prediction[0])

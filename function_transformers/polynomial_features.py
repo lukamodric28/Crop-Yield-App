@@ -1,6 +1,8 @@
+from sklearn import set_config
 from sklearn.preprocessing import FunctionTransformer, PolynomialFeatures
 def polynomial_features(df):
   df = df.copy()
+  set_config(transform_output = "pandas")
   poly_features = PolynomialFeatures(degree=2, include_bias=False)
   base_cols = ["rainfall_temperature", "rainfall_pesticides"]
 

@@ -1,8 +1,10 @@
 from sklearn.preprocessing import FunctionTransformer
+from sklearn._config import set_config
 import pycountry_convert as pc
 import pandas as pd
 def add_continent_column(df):
   df = df.copy()
+  set_config(transform_output = "pandas")
   continents = []
   continent_dict = {
     "AS" : "Asia",
