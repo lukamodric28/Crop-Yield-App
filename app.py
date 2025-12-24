@@ -81,7 +81,7 @@ def show_predictor_page():
 
     for i in range(0, 3):
         st.space()
-    st.write("**These models are not perfect and may not always be accurate for all values given. It is recommended to test custom values given with the top 4 models to see the most accurate prediction and any variance. Another option would be to use values from the testing set to see how accurate the models are for those specific values.*")
+    st.write("**These models are not perfect and may not always be accurate for all values given. It is recommended to test custom values given with the top 4 models to see the most accurate prediction and any variance. Another option would be to use values from the testing set in the 'Datasets Used While Developing the Models🌱' page to see how accurate the models are for those specific values.*")
 
 def show_statistics_page():
     @st.cache_data
@@ -121,16 +121,46 @@ def show_statistics_page():
     st.write("Based on the above metrics(primarily RMSE), here are the rankings of the models from best to worst:")
     st.markdown("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;🥇K-Nearest Neighbors(KNN)")
     st.markdown("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;🥈Random Forest Regression")
-    st.markdown("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;🥉Gradient Boosting Regression")
-    st.markdown("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;🏅Support Vector Regression")
+    st.markdown("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;🥉Support Vector Regression")
+    st.markdown("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;🏅Gradient Boosting Regression")
     st.markdown("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;🎖️Polynomial Regression")
     st.markdown("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;🎖️Lasso Regression")
 
-#def show_datasets_page():
+def show_datasets_page():
+    @st.cache_data
+    def load_data():
+        return pd.read_csv("models_and_datasets/yield_df.csv", index_col=0)
+    @st.cache_data
+    def load_testing_data():
+        return pd.read_csv("models_and_datasets/crop_yield_testing_set.csv", index_col=0)
+    @st.cache_data
+    def load_training_data():
+        return pd.read_csv("models_and_datasets/crop_yield_training_set.csv", index_col=0)
+    
+    crop_yield = load_data()
+    crop_yield.rename(columns = {"Area":"Country", "Item":"Crop", "pesticides_tonnes":"pesticides_in_tons_used", "average_rain_fall_mm_per_year":"average_rainfall_in_mm_per_year"}, inplace=True)
+    crop_yield = crop_yield.reindex(columns = ["Country", "Crop", "Year", "average_rainfall_in_mm_per_year", "pesticides_in_tons_used", "avg_temp", "hg/ha_yield"])
+    st.title("Datasets Used While Developing the Models🌱")
+    st.markdown("<p style='font-size:18px; text-align:center; color:#FFFFFF;'>Here is the full dataset, training set, and testing set used during the development of the models. To ensure that the strongest models are performing well, you can test values from the testing set.</p>", unsafe_allow_html=True)
+    st.divider()
 
+    st.markdown("## Full Dataset")
+    st.write("This is the full dataset before stratification, consisting of 28,242 data points from Kaggle.")
+    st.dataframe(crop_yield)
+
+    crop_yield_testing_set = load_testing_data()
+    st.markdown("## Testing Set")
+    st.write("This is the testing set after stratification, consisting of 5,649 data points(20% of the full dataset) from the full dataset. This set is used to test the models and see how accurate they are when given unseen data.")
+    st.dataframe(crop_yield_testing_set)
+
+    crop_yield_training_set = load_training_data()
+    st.markdown("## Training Set")
+    st.write("This is the training set after stratification, consisting of 22,593 data points(80% of the full dataset) from the full dataset. This set is used to train the models and make them as accurate as possible before being feeding them to the testing set.")
+    st.dataframe(crop_yield_training_set)
 
 pages = st.navigation([
     st.Page(show_predictor_page, title="Crop Yield Predictor", icon="🌽"),
-    st.Page(show_statistics_page, title="Statistics During Model Testing And Evaluation", icon="📈")
+    st.Page(show_statistics_page, title="Statistics During Model Testing And Evaluation", icon="📈"),
+    st.Page(show_datasets_page, title="Datasets Used While Developing the Models", icon="🌱")
 ])
 pages.run() 
