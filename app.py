@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import joblib
+import plotly.express as px
 import time
 from function_transformers.add_continent_column import add_continent_column
 from function_transformers.clip_year import clip_year
@@ -11,6 +12,26 @@ from function_transformers.polynomial_features import polynomial_features
 
 st.set_page_config(page_title="Crop Yield Predictor", page_icon="🌽", layout="wide", initial_sidebar_state="auto")
 
+loaded_final_lasso_regression_model = joblib.load("models_and_datasets/lasso_regression_best_model.joblib")
+loaded_final_polynomial_regression_model = joblib.load("models_and_datasets/polynomial_regression_best_model.joblib")
+loaded_final_random_forest_regression_model = joblib.load("models_and_datasets/random_forest_regression_best_model.joblib")
+loaded_final_gradient_boosting_regression_model = joblib.load("models_and_datasets/gradient_boosting_best_model.joblib")
+loaded_final_k_nearest_neighbors_model = joblib.load("models_and_datasets/k_nearest_neighbors_best_model.joblib")
+loaded_final_support_vector_regression_model = joblib.load("models_and_datasets/support_vector_regression_best_model.joblib")
+
+crop_benchmarks = {
+    "Cassava": [95000, 130000],
+    "Maize": [37000, 61000],
+    "Potatoes": [170000, 215000],
+    "Rice, paddy": [38000, 48000],
+    "Plantains and others": [50000, 68000],
+    "Sorghum": [13000, 16000],
+    "Soybeans": [19000, 30000],
+    "Sweet potatoes": [110000, 160000],
+    "Wheat": [25000, 38000],
+    "Yams": [80000, 110000]
+}
+
 def show_predictor_page():
     @st.cache_data
     def load_data():
@@ -19,12 +40,6 @@ def show_predictor_page():
     crop_yield = load_data()
     countries = sorted(crop_yield["Area"].dropna().unique())
     crop = sorted(crop_yield["Item"].dropna().unique())
-    loaded_final_lasso_regression_model = joblib.load("models_and_datasets/lasso_regression_best_model.joblib")
-    loaded_final_polynomial_regression_model = joblib.load("models_and_datasets/polynomial_regression_best_model.joblib")
-    loaded_final_random_forest_regression_model = joblib.load("models_and_datasets/random_forest_regression_best_model.joblib")
-    loaded_final_gradient_boosting_regression_model = joblib.load("models_and_datasets/gradient_boosting_best_model.joblib")
-    loaded_final_k_nearest_neighbors_model = joblib.load("models_and_datasets/k_nearest_neighbors_best_model.joblib")
-    loaded_final_support_vector_regression_model = joblib.load("models_and_datasets/support_vector_regression_best_model.joblib")
 
     st.markdown("<h1 style = 'text-align:center; font-size:50px; color:#FFFFFF;'><b>Crop Yield Predictor🌽🌾🍚</b></h1>", unsafe_allow_html=True)
     st.markdown("<p style = 'font-size:18px; text-align:center; color:#FFFFFF; margin-top:-5px'>Predict the yield of your crops based on various factors using 6 models that you can choose from! For input values, if you are unsure about the common/possible ranges, just hover over the question mark.</p>", unsafe_allow_html=True)
@@ -36,7 +51,7 @@ def show_predictor_page():
         avg_temp = st.number_input("🌡️Enter the average temperature(in °C)!: ", help = "Common ranges are typically 1°C - 30°C.")
         pesticides_in_tons_used = st.number_input("🧪Enter the amount of pesticides used(in tons)!: ", help = "Common ranges are typically 10 tons - 367778 tons.")
     with col2:
-        year = st.number_input("📅Enter the year for which you want to predict the yield!: ", step = 1, format = "%i", help = "This model works best for years between 1990-2013, but it does work for years before or after that.")
+        year = st.number_input("📅Enter the year for which you want to predict the yield!: ", step = 1, format = "%i", help = "This model was trained for years 1990-2013. If years are outside this range, it will be clipped to either the maximum or minimum year to prevet innaccurate predictions.")
         Country = st.selectbox("📍Select the country you want to predict the yield for!", countries)
         Crop = st.selectbox("🌾Select the crop you want to predict the yield for!", crop)
     Model = st.selectbox("🤖 Select the model you want to use for prediction!", ["Lasso Regression", "Polynomial Regression", "Random Forest Regression", "Gradient Boosting", "K-Nearest Neighbors", "Support Vector Regression"], help = "To know more about which model to choose, go to the '📈Statistics' page from the sidebar.")
@@ -52,30 +67,75 @@ def show_predictor_page():
 
     if(st.button("Predict Yield")):
         with st.spinner("Predicting...Please wait!"):
+            benchmarks = crop_benchmarks.get(Crop)
+            low, high = benchmarks[0], benchmarks[1]
+            range_str = f"{low:,} - {high:,}"
             if(Model == "Lasso Regression"):
                 time.sleep(1)
                 lasso_regression_prediction = loaded_final_lasso_regression_model.predict(user_input_df)
                 st.write("Predicted Crop Yield(in Hectograms/Hectare): ", lasso_regression_prediction[0].round(2))
+
+                if(lasso_regression_prediction[0].round(2) < low):
+                    st.warning(f"This is below the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
+                elif(low <= lasso_regression_prediction[0].round(2) <= high):
+                    st.success(f"This is within the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
+                else:
+                    st.success(f"This is above the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
             elif(Model == "Polynomial Regression"):
                 time.sleep(1)
                 polynomial_regression_prediction = loaded_final_polynomial_regression_model.predict(user_input_df)
                 st.write("Predicted Crop Yield(in Hectograms/Hectare): ", polynomial_regression_prediction[0].round(2))
+
+                if(polynomial_regression_prediction[0].round(2) < low):
+                    st.warning(f"This is below the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
+                elif(low <= polynomial_regression_prediction[0].round(2) <= high):
+                    st.success(f"This is within the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
+                else:
+                    st.success(f"This is above the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
             elif(Model == "Random Forest Regression"):
                 time.sleep(1)
                 random_forest_regression_prediction = loaded_final_random_forest_regression_model.predict(user_input_df)
                 st.write("Predicted Crop Yield(in Hectograms/Hectare): ", random_forest_regression_prediction[0].round(2))
+
+                if(random_forest_regression_prediction[0].round(2) < low):
+                    st.warning(f"This is below the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
+                elif(low <= random_forest_regression_prediction[0].round(2) <= high):
+                    st.success(f"This is within the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
+                else:
+                    st.success(f"This is above the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
             elif(Model == "Gradient Boosting"):
                 time.sleep(1)
                 gradient_boosting_regression_prediction = loaded_final_gradient_boosting_regression_model.predict(user_input_df)
                 st.write("Predicted Crop Yield(in Hectograms/Hectare): ", gradient_boosting_regression_prediction[0].round(2))
+
+                if(gradient_boosting_regression_prediction[0].round(2) < low):
+                    st.warning(f"This is below the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
+                elif(low <= gradient_boosting_regression_prediction[0].round(2) <= high):
+                    st.success(f"This is within the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
+                else:
+                    st.success(f"This is above the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
             elif(Model == "K-Nearest Neighbors"):
                 time.sleep(1)
                 k_nearest_neighbors_prediction = loaded_final_k_nearest_neighbors_model.predict(user_input_df)
                 st.write("Predicted Crop Yield(in Hectograms/Hectare): ", k_nearest_neighbors_prediction[0].round(2))
+
+                if(k_nearest_neighbors_prediction[0].round(2) < low):
+                    st.warning(f"This is below the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
+                elif(low <= k_nearest_neighbors_prediction[0].round(2) <= high):
+                    st.success(f"This is within the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
+                else:
+                    st.success(f"This is above the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
             elif(Model == "Support Vector Regression"):
                 time.sleep(1)
                 support_vector_regression_prediction = loaded_final_support_vector_regression_model.predict(user_input_df)
                 st.write("Predicted Crop Yield(in Hectograms/Hectare): ", support_vector_regression_prediction[0].round(2))
+
+                if(support_vector_regression_prediction[0].round(2) < low):
+                    st.warning(f"This is below the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
+                elif(low <= support_vector_regression_prediction[0].round(2) <= high):
+                    st.success(f"This is within the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
+                else:
+                    st.success(f"This is above the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
 
     st.info("💡**Tip**: These models are not perfect and may not always be accurate for all values given. It is recommended to test custom values given with the top 4 models to see the most accurate prediction and any variance. Another option would be to use values from the testing set in the '🌱Datasets' page to see how accurate the models are for those specific values.")
 
@@ -172,7 +232,6 @@ def show_datasets_page():
     st.markdown("<h1 style = 'text-align:center; font-size:50px; color:#FFFFFF;'><b>Datasets Used While Developing the Models🌱</b></h1>", unsafe_allow_html=True)
     st.markdown("<p style='font-size:18px; text-align:center; color:#FFFFFF; margin-top:-5px'>Here is the full dataset, training set, and testing set used during the development of the models. To ensure that the strongest models are performing well, you can test values from the testing set.</p>", unsafe_allow_html=True)
     st.divider()
-    st.space()
     
     tab1, tab2, tab3 = st.tabs(["Full Dataset", "Testing Set", "Training Set"])
 
@@ -193,21 +252,119 @@ def show_graphs_page():
     def load_model_evaluation_data():
         return pd.read_csv("models_and_datasets/test_set_model_metrics.csv", index_col=0)
 
+    @st.cache_data
+    def get_all_predictions():
+        testing_set = pd.read_csv("models_and_datasets/crop_yield_testing_set.csv", index_col=0)
+        X_test = testing_set.drop(columns=["hg/ha_yield"])
+        
+        preds = {
+            "Actual": testing_set["hg/ha_yield"],
+            "K-Nearest Neighbors": loaded_final_k_nearest_neighbors_model.predict(X_test),
+            "Random Forest Regression": loaded_final_random_forest_regression_model.predict(X_test),
+            "Support Vector Regression": loaded_final_support_vector_regression_model.predict(X_test),
+            "Gradient Boosting": loaded_final_gradient_boosting_regression_model.predict(X_test),
+            "Polynomial Regression": loaded_final_polynomial_regression_model.predict(X_test),
+            "Lasso Regression": loaded_final_lasso_regression_model.predict(X_test)
+        }
+        return pd.DataFrame(preds)
+
     st.markdown("<h1 style = 'text-align:center; font-size:50px; color:#FFFFFF;'><b>Graphs of Model Evaluation Metrics📈</b></h1>", unsafe_allow_html=True)
     st.markdown("<p style = 'font-size:18px; text-align:center; color:#FFFFFF; margin-top:-5px'>Here are the various types of graphs for all the models! This is to provide some visuals on how well the model performed through both the training and testing phases. </p>", unsafe_allow_html=True)
     st.divider()
 
-    col1, col2, col3 = st.columns(3)
+    tab1, tab2, tab3 = st.tabs(["Bar Graphs", "Scatter Plots", "Residual Plots"])
     model_evaluation_data = load_model_evaluation_data()
-    model_evaluation_data_transposed = model_evaluation_data.T
 
-    with col1:
-        st.bar_chart(model_evaluation_data_transposed[["RMSE"]], x_label = "Model", y_label = "RMSE in Hectograms/Hectare")
-        st.bar_chart(model_evaluation_data_transposed[["R^2"]], x_label = "Model", y_label = "R² Score")
-    with col2:
-        st.bar_chart(model_evaluation_data_transposed[["MSE"]], x_label = "Model", y_label = "MSE in Hectograms²/Hectare²")
-    with col3:
-        st.bar_chart(model_evaluation_data_transposed[["MAE"]], x_label = "Model", y_label = "MAE in Hectograms/Hectare")
+    all_preds = get_all_predictions()
+
+    with tab1:
+        col1, col2 = st.columns(2)
+        with col1:
+            rmse_mae_data = model_evaluation_data.loc[["RMSE", "MAE"]]
+
+            rmse_mae_bar = px.bar(
+                rmse_mae_data.T, 
+                barmode="group",
+                title="RMSE and MAE of the Models (Lower is Better)",
+                color_discrete_sequence=["#2e7d32", "#81c784"],
+                labels = {"variable": "Variables"}
+            )
+            rmse_mae_bar.update_layout(
+                template="plotly_dark", 
+                yaxis_title="Crop Yield in Hectograms/Hectare", 
+                xaxis_title="Models",
+                title = {"text": "RMSE and MAE of the Models (Lower is Better)", "x": 0.5, "xanchor": "center", "y": 0.85, "yanchor": "top"}
+            )
+            st.plotly_chart(rmse_mae_bar, use_container_width=True)
+
+            mse_data = model_evaluation_data.loc[["MSE"]]
+            mse_bar = px.bar(
+                mse_data.T,
+                title="MSE of the Models (Lower is Better)",
+                color_discrete_sequence=["#2e7d32"],
+                labels = {"variable":"Variable"}
+            )
+            mse_bar.update_layout(
+                template="plotly_dark",
+                yaxis_title="Crop Yield in Hectograms²/Hectare²",
+                xaxis_title="Models",
+                title = {"text": "MSE of the Models (Lower is Better)", "x": 0.5, "xanchor": "center", "y": 0.85, "yanchor": "top"}
+            )
+            st.plotly_chart(mse_bar, use_container_width=True)
+
+        with col2:
+            r2_data = model_evaluation_data.loc[["R^2"]]
+            r2_bar = px.bar(
+                r2_data.T, 
+                title="R² of the Models (Higher is Better)",
+                color_discrete_sequence=["#2e7d32"],
+                labels = {"variable":"Variable"}
+            )
+            r2_bar.update_layout(
+                template="plotly_dark", 
+                yaxis_title="Score",
+                xaxis_title="Models",
+                title = {"text": "R² of the Models (Higher is Better)", "x": 0.5, "xanchor": "center", "y": 0.85, "yanchor": "top"}
+            )
+            st.plotly_chart(r2_bar, use_container_width=True)
+
+    with tab2:
+        model = st.selectbox("Select Model", ["Lasso Regression", "Polynomial Regression", "Random Forest Regression", "Gradient Boosting", "K-Nearest Neighbors", "Support Vector Regression"], key = "scatter_model_selectbox")
+        fig = px.scatter(
+            all_preds,
+            x="Actual",
+            y=model,
+            template="plotly_dark",
+            labels={"Actual": "Actual Yield", model: "Predicted Yield"},
+            title = f"{model} Scatter Plot"
+        )
+        fig.update_layout(
+            xaxis_title="Actual Yield (Hectograms/Hectare)",
+            yaxis_title="Predicted Yield (Hectograms/Hectare)",
+            title = {"text": f"{model} Scatter Plot", "x": 0.5, "xanchor": "center", "y": 0.85, "yanchor": "top"},
+            autosize=True
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+    with tab3:
+        model = st.selectbox("Select Model", ["Lasso Regression", "Polynomial Regression", "Random Forest Regression", "Gradient Boosting", "K-Nearest Neighbors", "Support Vector Regression"], key = "residual_model_selectbox")
+        residuals = all_preds["Actual"] - all_preds[model]
+        fig = px.scatter(
+            all_preds,
+            x=model,
+            y=residuals,
+            template="plotly_dark",
+            title = f"{model} Residual Plot",
+            labels={model: "Predicted Yield", "y": "Residuals"}
+        )
+        fig.add_hline(y=0, line_dash="dash", line_color="red")
+        fig.update_layout(
+            xaxis_title="Predicted Yield (Hectograms/Hectare)",
+            yaxis_title="Residuals (Hectograms/Hectare)",
+            title = {"text": f"{model} Residual Plot", "x": 0.5, "xanchor": "center", "y": 0.85, "yanchor": "top"},
+            autosize=True
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
 pages = st.navigation([
     st.Page(show_predictor_page, title="Crop Yield Predictor", icon="🌽"),
