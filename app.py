@@ -32,6 +32,36 @@ crop_benchmarks = {
     "Yams": [80000, 110000]
 }
 
+annual_growth_rates = {
+    "Cassava": 0.028,
+    "Maize": 0.022,
+    "Potatoes": 0.024,
+    "Rice, paddy": 0.010,
+    "Plantains and others": 0.008,
+    "Sorghum": 0.010,
+    "Soybeans": 0.016,
+    "Sweet potatoes": 0.018,
+    "Wheat": 0.014,
+    "Yams": 0.018
+}
+
+if "average_rainfall_in_mm_per_year" not in st.session_state:
+    st.session_state.average_rainfall_in_mm_per_year = 0
+if "avg_temp" not in st.session_state:
+    st.session_state.avg_temp = 0.00
+if "pesticides_in_tons_used" not in st.session_state:
+    st.session_state.pesticides_in_tons_used = 0.00
+if "year" not in st.session_state:
+    st.session_state.year = 1990
+if "Country" not in st.session_state:
+    st.session_state.Country = "Albania"
+if "Crop" not in st.session_state:
+    st.session_state.Crop = "Cassava"
+if "Model" not in st.session_state:
+    st.session_state.Model = "Lasso Regression"
+
+models = ["Lasso Regression", "Polynomial Regression", "Random Forest Regression", "Gradient Boosting", "K-Nearest Neighbors", "Support Vector Regression"]
+
 def show_predictor_page():
     @st.cache_data
     def load_data():
@@ -47,95 +77,133 @@ def show_predictor_page():
 
     col1, col2 = st.columns(2)
     with col1:
-        average_rainfall_in_mm_per_year = st.number_input("🌧️Enter the average annual rainfall(in mm)!: ", help = "Common ranges are typically 51mm - 3240mm.")
-        avg_temp = st.number_input("🌡️Enter the average temperature(in °C)!: ", help = "Common ranges are typically 1°C - 30°C.")
-        pesticides_in_tons_used = st.number_input("🧪Enter the amount of pesticides used(in tons)!: ", help = "Common ranges are typically 10 tons - 367778 tons.")
+        st.session_state.average_rainfall_in_mm_per_year = st.number_input("🌧️Enter the average annual rainfall(in mm)!: ", help = "Common ranges are typically 51mm - 3240mm.", min_value = 0, value = st.session_state.average_rainfall_in_mm_per_year)
+        st.session_state.avg_temp = st.number_input("🌡️Enter the average temperature(in °C)!: ", help = "Common ranges are typically 1°C - 30°C.", min_value = 0.00, value = st.session_state.avg_temp, format = "%.2f", step = 1.00)
+        st.session_state.pesticides_in_tons_used = st.number_input("🧪Enter the amount of pesticides used(in tons)!: ", help = "Common ranges are typically 10 tons - 367778 tons.", min_value = 0.00, format = "%.2f", value = st.session_state.pesticides_in_tons_used, step = 1.00)
     with col2:
-        year = st.number_input("📅Enter the year for which you want to predict the yield!: ", step = 1, format = "%i", help = "This model was trained for years 1990-2013. If years are outside this range, it will be clipped to either the maximum or minimum year to prevet innaccurate predictions.")
-        Country = st.selectbox("📍Select the country you want to predict the yield for!", countries)
-        Crop = st.selectbox("🌾Select the crop you want to predict the yield for!", crop)
-    Model = st.selectbox("🤖 Select the model you want to use for prediction!", ["Lasso Regression", "Polynomial Regression", "Random Forest Regression", "Gradient Boosting", "K-Nearest Neighbors", "Support Vector Regression"], help = "To know more about which model to choose, go to the '📈Statistics' page from the sidebar.")
+        st.session_state.year = st.number_input("📅Enter the year for which you want to predict the yield!: ", step = 1, format = "%i", help = "This model was trained for years 1990-2013. If years are outside this range, it will be clipped to either the maximum or minimum year and a uncertainty range will be added to prevet innaccurate predictions.", min_value = 0, value = st.session_state.year)
+        st.session_state.Country = st.selectbox("📍Select the country you want to predict the yield for!", countries, index = countries.index(st.session_state.Country))
+        st.session_state.Crop = st.selectbox("🌾Select the crop you want to predict the yield for!", crop, index = crop.index(st.session_state.Crop))
+    st.session_state.Model = st.selectbox("🤖 Select the model you want to use for prediction!", models, index = models.index(st.session_state.Model), help = "To know more about which model to choose, go to the '📈Statistics' page from the sidebar.")
 
     user_input_df = pd.DataFrame({
-        "average_rainfall_in_mm_per_year": [average_rainfall_in_mm_per_year],
-        "avg_temp": [avg_temp],
-        "pesticides_in_tons_used": [pesticides_in_tons_used],
-        "Year": [year],
-        "Country": [Country],
-        "Crop": [Crop]
+        "average_rainfall_in_mm_per_year": [st.session_state.average_rainfall_in_mm_per_year],
+        "avg_temp": [st.session_state.avg_temp],
+        "pesticides_in_tons_used": [st.session_state.pesticides_in_tons_used],
+        "Year": [st.session_state.year],
+        "Country": [st.session_state.Country],
+        "Crop": [st.session_state.Crop]
     })
 
-    if(st.button("Predict Yield")):
+    if(st.button("Predict Yield", type = "primary")):
         with st.spinner("Predicting...Please wait!"):
-            benchmarks = crop_benchmarks.get(Crop)
+            uncertainty_value = 0
+            rate = annual_growth_rates[st.session_state.Crop]
+            benchmarks = crop_benchmarks.get(st.session_state.Crop)
             low, high = benchmarks[0], benchmarks[1]
             range_str = f"{low:,} - {high:,}"
-            if(Model == "Lasso Regression"):
+
+            if(st.session_state.year > 2013):
+                uncertainty_value = (st.session_state.year - 2013) * rate
+            elif(st.session_state.year < 1990):
+                uncertainty_value = (1990 - st.session_state.year) * rate
+
+            if(st.session_state.Model == "Lasso Regression"):
                 time.sleep(1)
                 lasso_regression_prediction = loaded_final_lasso_regression_model.predict(user_input_df)
-                st.write("Predicted Crop Yield(in Hectograms/Hectare): ", lasso_regression_prediction[0].round(2))
+                lasso_regression_prediction_multiplied = lasso_regression_prediction[0] * uncertainty_value
+
+                if lasso_regression_prediction_multiplied > 0:
+                    st.write(f"Predicted Crop Yield(in Hectograms/Hectare): {lasso_regression_prediction[0].round(2)} ± {round(lasso_regression_prediction_multiplied, 2)}")
+                else:
+                    st.write("Predicted Crop Yield(in Hectograms/Hectare): ", lasso_regression_prediction[0].round(2)) 
 
                 if(lasso_regression_prediction[0].round(2) < low):
-                    st.warning(f"This is below the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
+                    st.warning(f"This is below the average global crop yield for {st.session_state.Crop}, which was {range_str} hectograms per hectare.")
                 elif(low <= lasso_regression_prediction[0].round(2) <= high):
-                    st.success(f"This is within the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
+                    st.success(f"This is within the average global crop yield for {st.session_state.Crop}, which was {range_str} hectograms per hectare.")
                 else:
-                    st.success(f"This is above the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
-            elif(Model == "Polynomial Regression"):
+                    st.success(f"This is above the average global crop yield for {st.session_state.Crop}, which was {range_str} hectograms per hectare.")
+            elif(st.session_state.Model == "Polynomial Regression"):
                 time.sleep(1)
                 polynomial_regression_prediction = loaded_final_polynomial_regression_model.predict(user_input_df)
-                st.write("Predicted Crop Yield(in Hectograms/Hectare): ", polynomial_regression_prediction[0].round(2))
+                polynomial_regression_prediction_multiplied = polynomial_regression_prediction[0] * uncertainty_value
+
+                if polynomial_regression_prediction_multiplied > 0:
+                    st.write(f"Predicted Crop Yield(in Hectograms/Hectare): {polynomial_regression_prediction[0].round(2)} ± {round(polynomial_regression_prediction_multiplied, 2)}")
+                else:
+                    st.write("Predicted Crop Yield(in Hectograms/Hectare): ", polynomial_regression_prediction[0].round(2))
 
                 if(polynomial_regression_prediction[0].round(2) < low):
-                    st.warning(f"This is below the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
+                    st.warning(f"This is below the average global crop yield for {st.session_state.Crop}, which was {range_str} hectograms per hectare.")
                 elif(low <= polynomial_regression_prediction[0].round(2) <= high):
-                    st.success(f"This is within the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
+                    st.success(f"This is within the average global crop yield for {st.session_state.Crop}, which was {range_str} hectograms per hectare.")
                 else:
-                    st.success(f"This is above the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
-            elif(Model == "Random Forest Regression"):
+                    st.success(f"This is above the average global crop yield for {st.session_state.Crop}, which was {range_str} hectograms per hectare.")
+            elif(st.session_state.Model == "Random Forest Regression"):
                 time.sleep(1)
                 random_forest_regression_prediction = loaded_final_random_forest_regression_model.predict(user_input_df)
-                st.write("Predicted Crop Yield(in Hectograms/Hectare): ", random_forest_regression_prediction[0].round(2))
+                random_forest_regression_prediction_multiplied = random_forest_regression_prediction[0] * uncertainty_value
+
+                if random_forest_regression_prediction_multiplied > 0:
+                    st.write(f"Predicted Crop Yield(in Hectograms/Hectare): {random_forest_regression_prediction[0].round(2)} ± {round(random_forest_regression_prediction_multiplied, 2)}")
+                else:
+                    st.write("Predicted Crop Yield(in Hectograms/Hectare): ", random_forest_regression_prediction[0].round(2))
 
                 if(random_forest_regression_prediction[0].round(2) < low):
-                    st.warning(f"This is below the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
+                    st.warning(f"This is below the average global crop yield for {st.session_state.Crop}, which was {range_str} hectograms per hectare.")
                 elif(low <= random_forest_regression_prediction[0].round(2) <= high):
-                    st.success(f"This is within the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
+                    st.success(f"This is within the average global crop yield for {st.session_state.Crop}, which was {range_str} hectograms per hectare.")
                 else:
-                    st.success(f"This is above the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
-            elif(Model == "Gradient Boosting"):
+                    st.success(f"This is above the average global crop yield for {st.session_state.Crop}, which was {range_str} hectograms per hectare.")
+            elif(st.session_state.Model == "Gradient Boosting"):
                 time.sleep(1)
                 gradient_boosting_regression_prediction = loaded_final_gradient_boosting_regression_model.predict(user_input_df)
-                st.write("Predicted Crop Yield(in Hectograms/Hectare): ", gradient_boosting_regression_prediction[0].round(2))
+                gradient_boosting_regression_prediction_multiplied = gradient_boosting_regression_prediction[0] * uncertainty_value
+
+                if gradient_boosting_regression_prediction_multiplied > 0:
+                    st.write(f"Predicted Crop Yield(in Hectograms/Hectare): {gradient_boosting_regression_prediction[0].round(2)} ± {round(gradient_boosting_regression_prediction_multiplied, 2)}")
+                else:
+                    st.write("Predicted Crop Yield(in Hectograms/Hectare): ", gradient_boosting_regression_prediction[0].round(2))
 
                 if(gradient_boosting_regression_prediction[0].round(2) < low):
-                    st.warning(f"This is below the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
+                    st.warning(f"This is below the average global crop yield for {st.session_state.Crop}, which was {range_str} hectograms per hectare.")
                 elif(low <= gradient_boosting_regression_prediction[0].round(2) <= high):
-                    st.success(f"This is within the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
+                    st.success(f"This is within the average global crop yield for {st.session_state.Crop}, which was {range_str} hectograms per hectare.")
                 else:
-                    st.success(f"This is above the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
-            elif(Model == "K-Nearest Neighbors"):
+                    st.success(f"This is above the average global crop yield for {st.session_state.Crop}, which was {range_str} hectograms per hectare.")
+            elif(st.session_state.Model == "K-Nearest Neighbors"):
                 time.sleep(1)
                 k_nearest_neighbors_prediction = loaded_final_k_nearest_neighbors_model.predict(user_input_df)
-                st.write("Predicted Crop Yield(in Hectograms/Hectare): ", k_nearest_neighbors_prediction[0].round(2))
+                k_nearest_neighbors_prediction_multiplied = k_nearest_neighbors_prediction[0] * uncertainty_value
+
+                if k_nearest_neighbors_prediction_multiplied > 0:
+                    st.write(f"Predicted Crop Yield(in Hectograms/Hectare): {k_nearest_neighbors_prediction[0].round(2)} ± {round(k_nearest_neighbors_prediction_multiplied, 2)}")
+                else:
+                    st.write("Predicted Crop Yield(in Hectograms/Hectare): ", k_nearest_neighbors_prediction[0].round(2))
 
                 if(k_nearest_neighbors_prediction[0].round(2) < low):
-                    st.warning(f"This is below the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
+                    st.warning(f"This is below the average global crop yield for {st.session_state.Crop}, which was {range_str} hectograms per hectare.")
                 elif(low <= k_nearest_neighbors_prediction[0].round(2) <= high):
-                    st.success(f"This is within the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
+                    st.success(f"This is within the average global crop yield for {st.session_state.Crop}, which was {range_str} hectograms per hectare.")
                 else:
-                    st.success(f"This is above the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
-            elif(Model == "Support Vector Regression"):
+                    st.success(f"This is above the average global crop yield for {st.session_state.Crop}, which was {range_str} hectograms per hectare.")
+            elif(st.session_state.Model == "Support Vector Regression"):
                 time.sleep(1)
                 support_vector_regression_prediction = loaded_final_support_vector_regression_model.predict(user_input_df)
-                st.write("Predicted Crop Yield(in Hectograms/Hectare): ", support_vector_regression_prediction[0].round(2))
+                support_vector_regression_prediction_multiplied = support_vector_regression_prediction[0] * uncertainty_value
+
+                if support_vector_regression_prediction_multiplied > 0:
+                    st.write(f"Predicted Crop Yield(in Hectograms/Hectare): {support_vector_regression_prediction[0].round(2)} ± {round(support_vector_regression_prediction_multiplied, 2)}")
+                else:
+                    st.write("Predicted Crop Yield(in Hectograms/Hectare): ", support_vector_regression_prediction[0].round(2))
 
                 if(support_vector_regression_prediction[0].round(2) < low):
-                    st.warning(f"This is below the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
+                    st.warning(f"This is below the average global crop yield for {st.session_state.Crop}, which was {range_str} hectograms per hectare.")
                 elif(low <= support_vector_regression_prediction[0].round(2) <= high):
-                    st.success(f"This is within the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
+                    st.success(f"This is within the average global crop yield for {st.session_state.Crop}, which was {range_str} hectograms per hectare.")
                 else:
-                    st.success(f"This is above the average global crop yield for {Crop}, which was {range_str} hectograms per hectare.")
+                    st.success(f"This is above the average global crop yield for {st.session_state.Crop}, which was {range_str} hectograms per hectare.")
 
     st.info("💡**Tip**: These models are not perfect and may not always be accurate for all values given. It is recommended to test custom values given with the top 4 models to see the most accurate prediction and any variance. Another option would be to use values from the testing set in the '🌱Datasets' page to see how accurate the models are for those specific values.")
 
@@ -329,42 +397,42 @@ def show_graphs_page():
             st.plotly_chart(r2_bar, use_container_width=True)
 
     with tab2:
-        model = st.selectbox("Select Model", ["Lasso Regression", "Polynomial Regression", "Random Forest Regression", "Gradient Boosting", "K-Nearest Neighbors", "Support Vector Regression"], key = "scatter_model_selectbox")
-        fig = px.scatter(
-            all_preds,
-            x="Actual",
-            y=model,
-            template="plotly_dark",
-            labels={"Actual": "Actual Yield", model: "Predicted Yield"},
-            title = f"{model} Scatter Plot"
-        )
-        fig.update_layout(
-            xaxis_title="Actual Yield (Hectograms/Hectare)",
-            yaxis_title="Predicted Yield (Hectograms/Hectare)",
-            title = {"text": f"{model} Scatter Plot", "x": 0.5, "xanchor": "center", "y": 0.85, "yanchor": "top"},
-            autosize=True
-        )
-        st.plotly_chart(fig, use_container_width=True)
+            model = st.selectbox("Select Model", models, key = "scatter_model_selectbox")
+            fig = px.scatter(
+                all_preds,
+                x="Actual",
+                y=model,
+                template="plotly_dark",
+                labels={"Actual": "Actual Yield", model: "Predicted Yield"},
+                title = f"{model} Scatter Plot"
+            )
+            fig.update_layout(
+                xaxis_title="Actual Yield (Hectograms/Hectare)",
+                yaxis_title="Predicted Yield (Hectograms/Hectare)",
+                title = {"text": f"{model} Scatter Plot", "x": 0.545, "xanchor": "center", "y": 0.85, "yanchor": "top"},
+                autosize=True
+            )
+            st.plotly_chart(fig, use_container_width=True)
 
     with tab3:
-        model = st.selectbox("Select Model", ["Lasso Regression", "Polynomial Regression", "Random Forest Regression", "Gradient Boosting", "K-Nearest Neighbors", "Support Vector Regression"], key = "residual_model_selectbox")
-        residuals = all_preds["Actual"] - all_preds[model]
-        fig = px.scatter(
-            all_preds,
-            x=model,
-            y=residuals,
-            template="plotly_dark",
-            title = f"{model} Residual Plot",
-            labels={model: "Predicted Yield", "y": "Residuals"}
-        )
-        fig.add_hline(y=0, line_dash="dash", line_color="red")
-        fig.update_layout(
-            xaxis_title="Predicted Yield (Hectograms/Hectare)",
-            yaxis_title="Residuals (Hectograms/Hectare)",
-            title = {"text": f"{model} Residual Plot", "x": 0.5, "xanchor": "center", "y": 0.85, "yanchor": "top"},
-            autosize=True
-        )
-        st.plotly_chart(fig, use_container_width=True)
+            model = st.selectbox("Select Model", models, key = "residual_model_selectbox")
+            residuals = all_preds["Actual"] - all_preds[model]
+            fig = px.scatter(
+                all_preds,
+                x=model,
+                y=residuals,
+                template="plotly_dark",
+                title = f"{model} Residual Plot",
+                labels={model: "Predicted Yield", "y": "Residuals"}
+            )
+            fig.add_hline(y=0, line_dash="dash", line_color="red")
+            fig.update_layout(
+                xaxis_title="Predicted Yield (Hectograms/Hectare)",
+                yaxis_title="Residuals (Hectograms/Hectare)",
+                title = {"text": f"{model} Residual Plot", "x": 0.545, "xanchor": "center", "y": 0.85, "yanchor": "top"},
+                autosize=True
+            )
+            st.plotly_chart(fig, use_container_width=True)
 
 pages = st.navigation([
     st.Page(show_predictor_page, title="Crop Yield Predictor", icon="🌽"),
