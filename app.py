@@ -205,7 +205,7 @@ def show_predictor_page():
                 else:
                     st.success(f"This is above the average global crop yield for {st.session_state.Crop}, which was {range_str} hectograms per hectare.")
 
-    st.info("💡**Tip**: These models are not perfect and may not always be accurate for all values given. It is recommended to test custom values given with the top 4 models to see the most accurate prediction and any variance. Another option would be to use values from the testing set in the '🌱Datasets' page to see how accurate the models are for those specific values.")
+    st.info("💡**Tip**: These models are not perfect and may not always be accurate for all values given. It is recommended to test custom values given with the top 4 models to see the most accurate prediction and any variance. Another option would be to use values from the testing set in the '🌱Datasets Used' page to see how accurate the models are for those specific values.")
 
 def show_statistics_page():
     @st.cache_data
