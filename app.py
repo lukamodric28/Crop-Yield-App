@@ -71,7 +71,7 @@ def show_predictor_page():
     countries = sorted(crop_yield["Area"].dropna().unique())
     crop = sorted(crop_yield["Item"].dropna().unique())
 
-    st.markdown("<h1 style = 'text-align:center; font-size:50px; color:#FFFFFF;'><b>Crop Yield Predictor🌽🌾🍚</b></h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style = 'text-align:center; font-size:50px; color:#FFFFFF;'><b>Crop Yield Predictor</b></h1>", unsafe_allow_html=True)
     st.markdown("<p style = 'font-size:18px; text-align:center; color:#FFFFFF; margin-top:-5px'>Predict the yield of your crops based on various factors using 6 models that you can choose from! For input values, if you are unsure about the common/possible ranges, just hover over the question mark.</p>", unsafe_allow_html=True)
     st.divider()
 
@@ -183,20 +183,20 @@ def show_predictor_page():
             else:
                 st.write(f"Predicted Crop Yield(in Hectograms/Hectare): {adjusted_prediction:.2f}")
 
-            if adjusted_prediction < low:
+            if adjusted_prediction < low and st.session_state.year < 2026:
                 st.warning(f"This is below the average global crop yield for {st.session_state.Crop}, which was {range_str}.")
-            elif low <= adjusted_prediction <= high:
+            elif low <= adjusted_prediction <= high and st.session_state.year < 2026:
                 st.success(f"This is within the average global crop yield for {st.session_state.Crop}, which was {range_str}.")
-            else:
+            elif adjusted_prediction > high and st.session_state.year < 2026:
                 st.success(f"This is above the average global crop yield for {st.session_state.Crop}, which was {range_str}.")
-    st.info("💡**Tip**: These models are not perfect and may not always be accurate for all values given. It is recommended to test custom values given with the top 4 models to see the most accurate prediction and any variance. Another option would be to use values from the testing set in the '🌱Datasets Used' page to see how accurate the models are for those specific values.")
+    st.info("**Tip**: These models are not perfect and may not always be accurate for all values given. It is recommended to test custom values given with the top 4 models to see the most accurate prediction and any variance. Another option would be to use values from the testing set in the '🌱Datasets Used' page to see how accurate the models are for those specific values.")
 
 def show_statistics_page():
     @st.cache_data
     def load_model_evaluation_data():
         return pd.read_csv("models_and_datasets/test_set_model_metrics.csv", index_col=0)
     
-    st.markdown("<h1 style = 'text-align:center; font-size:46px; color:#FFFFFF;'><b>Statistics During Model Testing And Evaluation📈📊</b></h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style = 'text-align:center; font-size:46px; color:#FFFFFF;'><b>Statistics During Model Testing And Evaluation</b></h1>", unsafe_allow_html=True)
     st.markdown("<p style = 'font-size:18px; text-align:center; color:#FFFFFF; margin-top:-5px'>Here are the statistics of various models during their testing and evaluation phase! This is to give you some insight on which models are highly accurate and which ones are not so accurate.</p>", unsafe_allow_html=True)
     st.divider()
 
@@ -281,7 +281,7 @@ def show_datasets_page():
     crop_yield.rename(columns = {"Area":"Country", "Item":"Crop", "pesticides_tonnes":"pesticides_in_tons_used", "average_rain_fall_mm_per_year":"average_rainfall_in_mm_per_year"}, inplace=True)
     crop_yield = crop_yield.reindex(columns = ["Country", "Crop", "Year", "average_rainfall_in_mm_per_year", "pesticides_in_tons_used", "avg_temp", "hg/ha_yield"])
 
-    st.markdown("<h1 style = 'text-align:center; font-size:50px; color:#FFFFFF;'><b>Datasets Used While Developing the Models🌱</b></h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style = 'text-align:center; font-size:50px; color:#FFFFFF;'><b>Datasets Used While Developing the Models</b></h1>", unsafe_allow_html=True)
     st.markdown("<p style='font-size:18px; text-align:center; color:#FFFFFF; margin-top:-5px'>Here is the full dataset, training set, and testing set used during the development of the models. To ensure that the strongest models are performing well, you can test values from the testing set.</p>", unsafe_allow_html=True)
     st.divider()
     
@@ -320,7 +320,7 @@ def show_graphs_page():
         }
         return pd.DataFrame(preds)
 
-    st.markdown("<h1 style = 'text-align:center; font-size:50px; color:#FFFFFF;'><b>Graphs of Model Evaluation Metrics📈</b></h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style = 'text-align:center; font-size:50px; color:#FFFFFF;'><b>Graphs of Model Evaluation Metrics</b></h1>", unsafe_allow_html=True)
     st.markdown("<p style = 'font-size:18px; text-align:center; color:#FFFFFF; margin-top:-5px'>Here are the various types of graphs for all the models! This is to provide some visuals on how well the model performed through both the training and testing phases. </p>", unsafe_allow_html=True)
     st.divider()
 
