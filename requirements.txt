@@ -6,3 +6,4 @@ pycountry-convert
 streamlit
 scipy
 joblib
+altair==4.2.2
