@@ -23,6 +23,21 @@ Install Python 3.9+ and the dependencies in [requirements.txt.txt](requirements.
 
 ## Run the app
 
+Choose one of the options below.
+
+### Option 1: Streamlit Community Cloud
+
+1. Open Streamlit Community Cloud.
+2. Create a new app.
+3. Point it to this repository so Streamlit can host it.
+
+### Option 2: Run locally with VS Code
+
+1. Clone or download this repository.
+2. Install the required Python packages.
+3. Open the project in VS Code.
+4. Run the app in the integrated terminal:
+
 ```bash
 streamlit run app.py
 ```
